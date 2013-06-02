@@ -1,6 +1,7 @@
 package trees;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -67,11 +68,36 @@ public class HuffmanTree<T>
     
     /**
      * Build a huffman tree with the given data
-     * @param data the data to built the huffman tree with
+     * @param data the data to build the huffman tree with
      */
-    public void buildTree(Data[] data)
+    public void buildTree(T[] data)
     {
-        Queue<BinaryTree<Data>> queue = new PriorityQueue<BinaryTree<Data>>(data.length, new CompareHuffmanTrees());
+        HashMap<T, Integer> freqTable = new HashMap<T, Integer>();
+        for (T d : data)
+        {
+            if (freqTable.containsKey(d))
+            {
+                freqTable.put(d, freqTable.get(d) + 1);
+                continue;
+            }
+            freqTable.put(d, 1);
+        }
+        List<Data> dataList = new LinkedList<Data>();
+        for(T key : freqTable.keySet())
+        {
+            System.out.println(key + ": " + freqTable.get(key));
+            dataList.add(new Data(freqTable.get(key), key));
+        }
+        buildTree(dataList);
+    }
+    
+    /**
+     * Build a huffman tree with the given data packaged in the Data class
+     * @param data the data to build the huffman tree with
+     */
+    public void buildTree(List<Data> data)
+    {
+        Queue<BinaryTree<Data>> queue = new PriorityQueue<BinaryTree<Data>>(data.size(), new CompareHuffmanTrees());
         for (Data d : data)
         {
             BinaryTree<Data> bt = new BinaryTree<Data>(d, null, null);
@@ -93,34 +119,51 @@ public class HuffmanTree<T>
     }
     
     /**
-     * Read the tree in order to get the bits that represent the
-     * encoded values of the data in the tree
-     * @param tree the tree to read
-     * @param bits the current bits read
-     * @return a String of bits representing the encoded values
-     * of the data in the tree
+     * Use this huffman tree to encode the given value
+     * @param tree the tree to use
+     * @param bits the bits read up until the current node
+     * @param value the value to encode
+     * @return a String of bits representing the encoded value
      */
-    private String readTree(BinaryTree<Data> tree, StringBuilder bits)
+    private String encode(BinaryTree<Data> tree, StringBuilder bits, T value)
     {
         Data rootData = tree.getData();
         if (rootData.value != null)
         {
-            return null;
+            if (rootData.value.equals(value))
+            {
+                return bits.toString();
+            }
+            else
+            {
+                return null;
+            }
         }
-        readTree(tree.getLeftTree(), bits.append("0"));
-        readTree(tree.getRightTree(), bits.append("1"));
-        return bits.toString();
+        else
+        {
+            String result = encode(tree.getLeftTree(), new StringBuilder(bits.toString() + "0"), value);
+            if (result == null)
+            {
+                result = encode(tree.getRightTree(), new StringBuilder(bits.toString() + "1"), value);
+            }
+            return result;
+        }
     }
     
     /**
-     * Get the bits representing the encoded values of the data in
-     * the huffman tree
+     * Get the bits representing the encoded values of the data given
+     * @param values the values to encode
      * @return a String of bits representing the encoded values
-     * of the data in the huffman tree
+     * of the data given
      */
-    public String getBits()
+    public String getBits(T[] values)
     {
-        return readTree(tree, new StringBuilder());
+        StringBuilder bits = new StringBuilder();
+        for (T value : values)
+        {
+            bits.append(encode(tree, new StringBuilder(), value));
+        }
+        return bits.toString();
     }
     
     /**

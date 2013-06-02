@@ -15,11 +15,15 @@ import trees.HuffmanTree;
 public class ImagedTree<T>
 {
     
+    
     /**
      * The class used for storing the data of each pixel
      */
     private class Pixel
     {
+        
+        private static final int PADDED_VALUE = 0xFFFFFF;
+        
         private String rBits;
         private String bBits;
         private String gBits;
@@ -41,8 +45,8 @@ public class ImagedTree<T>
         public int getRgb()
         {
             int rVal = Integer.parseInt(rBits, 2);
-            int bVal = Integer.parseInt(bBits, 2);
             int gVal = Integer.parseInt(gBits, 2);
+            int bVal = Integer.parseInt(bBits, 2);
             return (1 << 24) + (rVal << 16) + (gVal << 8) + bVal;
         }
         
@@ -61,14 +65,14 @@ public class ImagedTree<T>
             else if (bits.length() <= 16)
             {
                 rBits = bits.substring(0, 8);
-                bBits = bits.substring(8);
+                gBits = bits.substring(8);
                 return true;
             }
-            else if (bits.length() <= 24)
+            else if (bits.length() <= 23)
             {
                 rBits = bits.substring(0, 8);
-                bBits = bits.substring(8, 16);
-                gBits = bits.substring(16);
+                gBits = bits.substring(8, 16);
+                bBits = bits.substring(16);
                 return true;
             }
             return false;
@@ -80,7 +84,7 @@ public class ImagedTree<T>
     /**
      * Create the object with an empty list of pixels
      */
-    public ImagedTree()
+    public ImagedTree(T[] data)
     {
         pixels = new LinkedList<Pixel>();
     }
@@ -89,10 +93,12 @@ public class ImagedTree<T>
      * Create the object with the given tree
      * @param tree the huffman tree to convert to an image
      */
-    public ImagedTree(HuffmanTree<T> tree)
+    public ImagedTree(HuffmanTree<T> tree, T[] data)
     {
         pixels = new LinkedList<Pixel>();
-        bitsToPixels(tree.getBits());
+        String bits = tree.getBits(data);
+        bitsToPixels(bits);
+        
     }
     
     /**
@@ -101,14 +107,17 @@ public class ImagedTree<T>
      */
     private void bitsToPixels(String bits)
     {
-        Pixel p = new Pixel();
-        if (p.write(bits))
+        Pixel p;
+        while (bits.length() > 23)
         {
+            p = new Pixel();
+            p.write(bits.substring(0, 23));
             pixels.add(p);
-            return;
+            bits = bits.substring(23);
         }
+        p = new Pixel();
+        p.write(bits);
         pixels.add(p);
-        bitsToPixels(bits.substring(24));
     }
     
     /**
@@ -117,19 +126,19 @@ public class ImagedTree<T>
      */
     public BufferedImage toBufferedImage()
     {
-        int width = (int) Math.sqrt(pixels.size());
-        int height = (int) Math.ceil(pixels.size()/width);
+        int width = (int) Math.ceil(Math.sqrt(pixels.size()));
+        int height = width;
         BufferedImage bi = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         for (int i = 0; i < width; i++)
         {
             for (int j = 0; j < height; j++)
             {
-                if (i + j*i >= pixels.size())
+                if (i*height + j >= pixels.size())
                 {
-                    bi.setRGB(i, j, 0);
+                    bi.setRGB(i, j, Pixel.PADDED_VALUE);
                     continue;
                 }
-                bi.setRGB(i, j, pixels.get(i + j*i).getRgb());
+                bi.setRGB(i, j, pixels.get(i*height + j).getRgb());
             }
         }
         return bi;
